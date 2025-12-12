@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurus | Pro JSON Processor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --primary: #3b82f6;
+        --error: #ef4444;
+        --success: #10b981;
+        --glass: rgba(15, 23, 42, 0.8);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --panel-bg: rgba(0, 0, 0, 0.25);
+        --thick-border: 10px solid #ffffff; 
+    }
+
+    body {
+        margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+        background: radial-gradient(circle at 100% 0%, #1e3a8a 0%, #020617 100%);
+        color: white; height: 100vh; display: flex; overflow: hidden;
+    }
+
+    /* --- POP AUTOMATION --- */
+    .pop-click { 
+        transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        cursor: pointer !important; 
+        user-select: none;
+        display: inline-block;
+    }
+    .pop-click:active { transform: scale(0.94) !important; }
+    .pop-click:hover { filter: brightness(1.2); }
+
+    /* NAVIGATION */
+    .header-menu {
+        position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+        width: 90%; max-width: 1000px; background: rgba(226, 232, 240, 0.95);
+        backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+        padding: 5px; display: flex; justify-content: center; gap: 5px;
+        border-radius: 100px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .header-item {
+        padding: 10px 20px; font-size: 11px; text-transform: uppercase;
+        letter-spacing: 1px; font-weight: 700; border-radius: 100px;
+        color: #475569; text-decoration: none;
+    }
+    .active-tab { background: var(--primary) !important; color: white !important; }
+
+    /* TOAST */
+    .toast {
+        position: fixed; top: 85px; left: 50%; transform: translateX(-50%) translateY(-20px);
+        background: #1e293b; color: white; padding: 12px 25px; border-radius: 50px;
+        font-weight: 700; font-size: 13px; border: 2px solid var(--primary);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.6); opacity: 0; transition: 0.4s; z-index: 9999;
+        pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* SIDEBAR */
+    .sidebar {
+        width: 280px; background: rgba(15, 23, 42, 0.95);
+        border: var(--thick-border); border-radius: 35px;
+        margin: 85px 10px 20px 20px; padding: 20px; 
+        display: flex; flex-direction: column; box-sizing: border-box;
+    }
+
+    .sidebar-title { font-size: 11px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 15px; }
+    #historyList { flex: 1; overflow-y: auto; padding-right: 5px; }
+    
+    .history-item {
+        padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+        border-radius: 15px; margin-bottom: 10px; font-size: 12px; width: 100%; box-sizing: border-box;
+    }
+
+    .main { flex: 1; padding: 85px 20px 20px 10px; display: flex; flex-direction: column; }
+
+    .env-card {
+        background: var(--glass); padding: 15px 25px; border-radius: 25px;
+        border: var(--thick-border); margin-bottom: 15px;
+        display: flex; align-items: center; gap: 20px;
+    }
+
+    .env-btn {
+        padding: 8px 18px; border-radius: 10px; font-size: 11px; font-weight: 800;
+        background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+        color: #94a3b8; transition: 0.2s;
+    }
+    input[type="radio"]:checked + .env-btn { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .panel-wrapper { display: grid; grid-template-columns: 1fr 1fr; flex: 1; gap: 15px; min-height: 0; }
+    .panel {
+        background: var(--glass); border-radius: 30px; border: var(--thick-border);
+        display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .panel-title { padding: 10px 20px; font-size: 11px; font-weight: 800; color: var(--primary); text-transform: uppercase; background: rgba(0,0,0,0.2); }
+    .editor-container { flex: 1; display: flex; background: var(--panel-bg); overflow: hidden; }
+    textarea { flex: 1; padding: 15px; background: transparent; border: none; outline: none; resize: none; color: #e2e8f0; font-family: 'JetBrains Mono'; font-size: 13px; line-height: 1.5; }
+
+    .btn-md { 
+        padding: 10px 22px; border-radius: 12px; font-weight: 800; 
+        border: none; font-size: 13px; display: flex; align-items: center; gap: 8px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-reset { background: var(--error); color: white; }
+    .btn-copy { background: #64748b; color: white; }
+    .btn-display { background: var(--success); color: white; }
+
+    .bottom-bar { margin-top: 15px; display: flex; justify-content: flex-start; }
+
+    /* Custom Scrollbar for Sidebar */
+    #historyList::-webkit-scrollbar { width: 4px; }
+    #historyList::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+</style>
+</head>
+
+<body>
+
+<div id="toast" class="toast">Action Logged</div>
+
+<div class="header-menu">
+    <a th:href="@{/home}" class="header-item pop-click">Home</a>
+    <a th:href="@{/decryptor}" class="header-item pop-click">Decryptor</a>
+    <a th:href="@{/requestor}" class="header-item active-tab pop-click">Requestor</a>
+    <a th:href="@{/logger}" class="header-item pop-click">Logger</a>
+    <a th:href="@{/comparator}" class="header-item pop-click">Comparator</a>
+</div>
+
+<div class="sidebar">
+    <span class="sidebar-title">Transaction History</span>
+    <div id="historyList">
+        </div>
+    <span onclick="clearAllHistory()" class="pop-click" style="font-size: 10px; color: var(--error); margin-top: 15px; text-align: center; font-weight: 800; text-decoration: underline; width: 100%;">CLEAR ALL HISTORY</span>
+</div>
+
+<div class="main">
+    <div class="env-card">
+        <span style="font-size: 11px; font-weight: 800; color: var(--primary);">ENVIRONMENT:</span>
+        <div style="display:flex; gap:8px;">
+            <input type="radio" name="env" id="dev" value="DEV" style="display:none"><label for="dev" class="env-btn pop-click">DEV</label>
+            <input type="radio" name="env" id="cert" value="CERT" style="display:none"><label for="cert" class="env-btn pop-click">CERT</label>
+            <input type="radio" name="env" id="sgnd" value="SGND" style="display:none"><label for="sgnd" class="env-btn pop-click">SGND</label>
+            <input type="radio" name="env" id="uat" value="UAT" style="display:none"><label for="uat" class="env-btn pop-click">UAT</label>
+            <input type="radio" name="env" id="prod" value="PROD" style="display:none"><label for="prod" class="env-btn pop-click">PROD</label>
+        </div>
+    </div>
+
+    <div class="panel-wrapper">
+        <div class="panel">
+            <div class="panel-title">Request JSON</div>
+            <div class="editor-container">
+                <textarea id="jsonInput" placeholder='{ "id": "Aurus_01" }'></textarea>
+            </div>
+            <div style="padding: 12px; display: flex; gap: 12px; background: rgba(0,0,0,0.2);">
+                <button class="btn-md btn-primary pop-click" onclick="toggleFormat()">✨ Format JSON</button>
+                <button class="btn-md btn-reset pop-click" onclick="resetInput()">↺ Reset</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Response Output</div>
+            <div class="editor-container">
+                <textarea id="outputPanel" readonly placeholder="Awaiting response..."></textarea>
+            </div>
+            <div style="padding: 12px; display: flex; gap: 12px; background: rgba(0,0,0,0.2);">
+                <button class="btn-md btn-copy pop-click" onclick="copyOutput()">📋 Copy Text</button>
+                <button class="btn-md btn-display pop-click" onclick="openMonitor()">🖥️ Full Display</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <button class="btn-md btn-primary pop-click" style="padding: 15px 40px; font-size: 14px;" onclick="submitJSON()">🚀 Submit Transaction</button>
+    </div>
+</div>
+
+<script>
+    let db;
+    // 1. Initialize Database
+    const dbReq = indexedDB.open("AurusFinalDB", 1);
+    
+    dbReq.onupgradeneeded = (e) => {
+        let database = e.target.result;
+        if (!database.objectStoreNames.contains("history")) {
+            database.createObjectStore("history", { keyPath: "id", autoIncrement: true });
+        }
+    };
+
+    dbReq.onsuccess = (e) => {
+        db = e.target.result;
+        renderHistory(); // 2. Render immediately on success
+    };
+
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3000);
+    }
+
+    function renderHistory() {
+        if(!db) return;
+        const list = document.getElementById("historyList");
+        const transaction = db.transaction("history", "readonly");
+        const store = transaction.objectStore("history");
+        const getAllReq = store.getAll();
+
+        getAllReq.onsuccess = (e) => {
+            const results = e.target.result;
+            list.innerHTML = "";
+            results.reverse().forEach(item => {
+                const div = document.createElement("div"); 
+                div.className = "history-item pop-click";
+                div.innerHTML = `<b>${item.name}</b><br><small>${item.env} • ${item.time}</small>`;
+                div.onclick = () => {
+                    document.getElementById("jsonInput").value = item.input;
+                    document.getElementById("outputPanel").value = item.output;
+                    showToast("📂 Loaded: " + item.name);
+                };
+                list.appendChild(div);
+            });
+        };
+    }
+
+    function submitJSON() {
+        const env = document.querySelector('input[name="env"]:checked')?.value;
+        const input = document.getElementById("jsonInput").value.trim();
+        
+        if (!env || !input) return showToast("⚠️ Select Environment & Enter Data");
+        
+        showToast("🚀 Sending...");
+        setTimeout(() => {
+            try {
+                const parsed = JSON.parse(input);
+                const out = `// Response from ${env}\n` + JSON.stringify(parsed, null, 4);
+                document.getElementById("outputPanel").value = out;
+                
+                const entry = { 
+                    name: "TXN_" + Math.floor(Math.random() * 9000 + 1000), 
+                    input: input, 
+                    output: out, 
+                    env: env, 
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                };
+                
+                const tx = db.transaction("history", "readwrite");
+                tx.objectStore("history").add(entry);
+                tx.oncomplete = () => renderHistory();
+                
+                showToast("✅ Success");
+            } catch (e) { showToast("❌ Invalid JSON"); }
+        }, 600);
+    }
+
+    function toggleFormat() {
+        try {
+            const el = document.getElementById("jsonInput");
+            el.value = JSON.stringify(JSON.parse(el.value), null, 4);
+            showToast("✨ Formatted");
+        } catch(e) { showToast("❌ JSON Error"); }
+    }
+
+    function resetInput() { 
+        document.getElementById("jsonInput").value = ""; 
+        showToast("↺ Cleared"); 
+    }
+    
+    function copyOutput() { 
+        navigator.clipboard.writeText(document.getElementById("outputPanel").value); 
+        showToast("📋 Copied"); 
+    }
+
+    function openMonitor() { 
+        const res = document.getElementById("outputPanel").value;
+        if(!res) return showToast("⚠️ No data");
+        localStorage.setItem('decryptResult', res); 
+        window.open('display.html', '_blank'); 
+    }
+
+    function clearAllHistory() {
+        if(confirm("Wipe all history?")) {
+            const tx = db.transaction("history", "readwrite");
+            tx.objectStore("history").clear();
+            tx.oncomplete = () => {
+                renderHistory();
+                showToast("🧹 Wiped");
+            };
+        }
+    }
+</script>
+</body>
+</html>

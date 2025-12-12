@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Aurus | Pro Comparator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6; --bg: #020617; --glass: rgba(15, 23, 42, 0.8);
+            --thick-border: 10px solid #ffffff; --glass-border: rgba(255, 255, 255, 0.1);
+            --panel-bg: rgba(0, 0, 0, 0.4); --accent: #10b981;
+        }
+
+        body {
+            margin: 0; font-family: 'Inter', sans-serif; height: 100vh;
+            background: radial-gradient(circle at 100% 0%, #1e3a8a 0%, var(--bg) 100%);
+            color: white; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* NAVIGATION HEADER */
+        .header-menu {
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 1000px; background: rgba(226, 232, 240, 0.95);
+            backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+            padding: 5px; display: flex; justify-content: center; gap: 5px;
+            border-radius: 100px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .header-item {
+            padding: 10px 20px; font-size: 11px; text-transform: uppercase;
+            letter-spacing: 1px; font-weight: 700; border-radius: 100px;
+            color: #475569; text-decoration: none; transition: 0.3s;
+        }
+        .active-tab { background: var(--primary); color: white !important; }
+
+        .toast {
+            position: fixed; top: 85px; left: 50%; transform: translateX(-50%) translateY(-20px);
+            background: #1e293b; color: white; padding: 12px 28px; border-radius: 50px;
+            font-weight: 700; border: 2px solid var(--primary); opacity: 0; transition: 0.4s; z-index: 9999;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        .layout { display: flex; flex: 1; padding: 90px 20px 20px 20px; gap: 15px; box-sizing: border-box; }
+        
+        .sidebar {
+            width: 260px; background: var(--glass); border: var(--thick-border);
+            border-radius: 35px; padding: 25px; box-sizing: border-box; display: flex; flex-direction: column;
+        }
+
+        .main { flex: 1; display: flex; flex-direction: column; gap: 15px; }
+
+        .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; height: 62vh; }
+        .panel { 
+            background: var(--glass); border: var(--thick-border); 
+            border-radius: 32px; display: flex; flex-direction: column; overflow: hidden; 
+        }
+
+        /* PANEL HEADER WITH BEAUTIFY BUTTON */
+        .panel-head { 
+            padding: 8px 18px; background: rgba(255,255,255,0.05); 
+            border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .panel-title { font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .btn-beautify {
+            background: var(--accent); color: white; border: none; padding: 4px 12px;
+            border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer; transition: 0.2s;
+        }
+        .btn-beautify:hover { filter: brightness(1.2); transform: scale(1.05); }
+
+        .editor-wrap { flex: 1; display: flex; background: var(--panel-bg); overflow: hidden; }
+        
+        /* SCROLLER STYLE */
+        textarea::-webkit-scrollbar { width: 8px; }
+        textarea::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+        textarea { 
+            flex: 1; padding: 20px; background: transparent; border: none; 
+            color: #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 13px; 
+            resize: none; outline: none; line-height: 1.6;
+        }
+
+        .bottom-bar { display: flex; gap: 15px; }
+        .btn-lg { 
+            padding: 18px 40px; border-radius: 14px; font-weight: 800; cursor: pointer; 
+            border: none; font-size: 14px; transition: 0.3s; text-transform: uppercase;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-ghost { background: transparent; border: 1px solid var(--glass-border); color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+<div class="header-menu">
+    <a href="#" class="header-item">Home</a>
+    <a href="#" class="header-item">Decryptor</a>
+    <a href="#" class="header-item">Requestor</a>
+    <a href="#" class="header-item">Logger</a>
+    <a href="#" class="header-item active-tab">Comparator</a>
+</div>
+
+<div id="toast" class="toast">Action Logged</div>
+
+<div class="layout">
+    <div class="sidebar">
+        <h4 style="margin:0 0 15px 0; font-size:11px; color: var(--primary);">HISTORY</h4>
+        <div id="historyList" style="flex:1; overflow-y:auto;"></div>
+    </div>
+
+    <div class="main">
+        <div class="panels">
+            <div class="panel">
+                <div class="panel-head">
+                    <span class="panel-title">Source Data</span>
+                    <button class="btn-beautify" onclick="beautify('leftInput')">✨ BEAUTIFY</button>
+                </div>
+                <div class="editor-wrap">
+                    <textarea id="leftInput" placeholder="Paste JSON or XML..."></textarea>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head">
+                    <span class="panel-title">Target Data</span>
+                    <button class="btn-beautify" onclick="beautify('rightInput')">✨ BEAUTIFY</button>
+                </div>
+                <div class="editor-wrap">
+                    <textarea id="rightInput" placeholder="Paste JSON or XML..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-bar">
+            <button class="btn-lg btn-primary" onclick="launchSyncView()">🚀 Compare Side-by-Side</button>
+            <button class="btn-lg btn-ghost" onclick="resetAll()">↺ Reset</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3000);
+    }
+
+    // BEAUTIFY LOGIC (JSON & XML)
+    function beautify(targetId) {
+        const area = document.getElementById(targetId);
+        let val = area.value.trim();
+        if (!val) return;
+
+        try {
+            // Check if it's JSON
+            if (val.startsWith('{') || val.startsWith('[')) {
+                const obj = JSON.parse(val);
+                area.value = JSON.stringify(obj, null, 4);
+                showToast("✨ JSON Formatted");
+            } 
+            // Check if it's XML
+            else if (val.startsWith('<')) {
+                area.value = formatXML(val);
+                showToast("✨ XML Formatted");
+            }
+            else {
+                showToast("⚠️ Format not recognized");
+            }
+        } catch (e) {
+            showToast("❌ Invalid Data Structure");
+        }
+    }
+
+    function formatXML(xml) {
+        let formatted = '';
+        let indent = '';
+        const tab = '    ';
+        xml.split(/>\s*</).forEach(function(node) {
+            if (node.match(/^\/\w/)) indent = indent.substring(tab.length);
+            formatted += indent + '<' + node + '>\r\n';
+            if (node.match(/^<?\w[^>]*[^\/]$/)) indent += tab;
+        });
+        return formatted.substring(1, formatted.length - 3);
+    }
+
+    function launchSyncView() {
+        const left = document.getElementById('leftInput').value.trim();
+        const right = document.getElementById('rightInput').value.trim();
+        if(!left || !right) return showToast("⚠️ Provide data in both panels");
+        localStorage.setItem('compLeft', left);
+        localStorage.setItem('compRight', right);
+        window.open('diff-viewer.html', '_blank');
+    }
+
+    function resetAll() {
+        document.getElementById('leftInput').value = '';
+        document.getElementById('rightInput').value = '';
+        showToast("↺ Editors Reset");
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Aurus | Sync Engine Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Inter:wght@800&display=swap" rel="stylesheet">
+<style>
+    :root { 
+        --bg: #020617; 
+        --thick-border: 10px solid #ffffff; 
+        --primary: #3b82f6;
+        --danger: #ef4444;
+    }
+    body { margin: 0; background: var(--bg); color: white; font-family: 'Inter', sans-serif; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+    
+    /* HEADER & NAVIGATOR */
+    .header { height: 65px; background: #1e293b; display: flex; align-items: center; padding: 0 30px; border-bottom: 1px solid rgba(255,255,255,0.1); gap: 20px; }
+    
+    .find-controls { display: flex; align-items: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 5px 15px; gap: 10px; border: 1px solid rgba(255,255,255,0.1); }
+    .btn-nav { background: var(--primary); color: white; border: none; padding: 5px 12px; border-radius: 4px; font-weight: 800; cursor: pointer; font-size: 11px; }
+    .btn-close { background: var(--danger); margin-left: auto; padding: 8px 20px; border-radius: 8px; color: white; border: none; font-weight: 800; cursor: pointer; }
+
+    .viewer-container { flex: 1; padding: 20px; display: flex; overflow: hidden; }
+    .window-frame { flex: 1; display: flex; border: var(--thick-border); border-radius: 40px; background: #000; overflow: hidden; position: relative; }
+    
+    .master-scroller { flex: 1; display: flex; overflow: auto; scroll-behavior: smooth; }
+    .pane { flex: 1; min-width: 50%; padding: 20px; font-family: 'JetBrains Mono'; font-size: 13px; line-height: 1.8; white-space: pre; }
+    .left-pane { border-right: 1px solid #334155; }
+
+    .line { padding: 0 10px; border-radius: 4px; display: block; min-height: 1.8em; }
+    .match { background: rgba(16, 185, 129, 0.1); color: #a7f3d0; }
+    .diff { background: rgba(239, 68, 68, 0.18); color: #fecaca; border-left: 4px solid var(--danger); }
+    .spacer { background: rgba(255,255,255,0.03); opacity: 0.3; }
+
+    /* CUSTOM SCROLLBAR */
+    .master-scroller::-webkit-scrollbar { width: 14px; }
+    .master-scroller::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; border: 3px solid #000; }
+</style>
+</head>
+<body>
+    <div class="header">
+        <div style="font-weight:800; color:var(--primary);">AURUS DIFF ENGINE</div>
+        
+        <div class="find-controls">
+            <span id="diffStat" style="font-size: 11px; color: #94a3b8;">0 Diffs</span>
+            <button class="btn-nav" onclick="jumpDiff(-1)">▲ Prev</button>
+            <button class="btn-nav" onclick="jumpDiff(1)">▼ Next</button>
+        </div>
+
+        <button class="btn-close" onclick="closeWindow()">✕ CLOSE VIEW</button>
+    </div>
+
+    <div class="viewer-container">
+        <div class="window-frame">
+            <div class="master-scroller" id="scrollContainer">
+                <div class="pane left-pane" id="L-View"></div>
+                <div class="pane right-pane" id="R-View"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let diffElements = [];
+    let currentDiffIndex = -1;
+
+    window.onload = () => {
+        const leftArr = (localStorage.getItem('compLeft') || "").split('\n');
+        const rightArr = (localStorage.getItem('compRight') || "").split('\n');
+        
+        let lHtml = '', rHtml = '';
+        let i = 0, j = 0;
+
+        // Logical Look-ahead Algorithm
+        while (i < leftArr.length || j < rightArr.length) {
+            const L = leftArr[i], R = rightArr[j];
+
+            if (L !== undefined && R !== undefined && L.trim() === R.trim()) {
+                lHtml += addLine(L, 'match');
+                rHtml += addLine(R, 'match');
+                i++; j++;
+            } 
+            else if (i < leftArr.length && rightArr.slice(j).includes(L)) {
+                lHtml += addLine('', 'spacer');
+                rHtml += addLine(R, 'diff');
+                j++;
+            }
+            else if (j < rightArr.length && leftArr.slice(i).includes(R)) {
+                lHtml += addLine(L, 'diff');
+                rHtml += addLine('', 'spacer');
+                i++;
+            }
+            else {
+                lHtml += addLine(L || '', 'diff');
+                rHtml += addLine(R || '', 'diff');
+                i++; j++;
+            }
+        }
+        document.getElementById('L-View').innerHTML = lHtml;
+        document.getElementById('R-View').innerHTML = rHtml;
+
+        // Collect all diff lines for navigation
+        diffElements = document.querySelectorAll('.diff');
+        document.getElementById('diffStat').innerText = `${diffElements.length / 2} Diffs`;
+    };
+
+    function addLine(txt, cls) {
+        const content = txt.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/ /g, "&nbsp;") || "&nbsp;";
+        return `<div class="line ${cls}">${content}</div>`;
+    }
+
+    function jumpDiff(direction) {
+        if (diffElements.length === 0) return;
+        
+        currentDiffIndex += direction;
+        if (currentDiffIndex >= diffElements.length) currentDiffIndex = 0;
+        if (currentDiffIndex < 0) currentDiffIndex = diffElements.length - 1;
+
+        const target = diffElements[currentDiffIndex];
+        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        
+        // Brief highlight effect
+        target.style.outline = "2px solid white";
+        setTimeout(() => target.style.outline = "none", 800);
+    }
+
+    function closeWindow() {
+        if(confirm("Close Diff View? Data will be cleared.")) {
+            localStorage.removeItem('compLeft');
+            localStorage.removeItem('compRight');
+            window.close();
+        }
+    }
+</script>
+</body>
+</html>

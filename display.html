@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Aurus | Monitor Workspace</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary: #3b82f6;
+        --accent: #10b981;
+        --bg: #020617;
+        --thick-border: 10px solid #ffffff;
+    }
+
+    body { 
+        margin: 0; background: var(--bg); color: white; 
+        font-family: 'Inter', sans-serif; height: 100vh; 
+        overflow: hidden; display: flex; flex-direction: column; 
+    }
+    
+    /* TOOLBAR */
+    .toolbar { 
+        background: #1e293b; height: 65px; display: flex; justify-content: space-between; 
+        align-items: center; padding: 0 25px; border-bottom: 1px solid rgba(255,255,255,0.1); 
+        z-index: 10;
+    }
+
+    .btn-group { display: flex; gap: 10px; align-items: center; }
+    
+    .tool-btn { 
+        padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; 
+        border: none; font-size: 13px; display: flex; align-items: center; gap: 8px;
+        transition: 0.2s;
+    }
+
+    .btn-find { background: rgba(255,255,255,0.1); color: white; }
+    .btn-copy { background: var(--primary); color: white; }
+    .btn-close { background: #ef4444; color: white; }
+    .tool-btn:hover { transform: translateY(-2px); filter: brightness(1.2); }
+
+    /* SEARCH BAR */
+    #searchBar {
+        position: absolute; top: 75px; right: 25px; background: #1e293b; 
+        padding: 15px; border-radius: 15px; display: none; gap: 10px;
+        border: 2px solid var(--primary); z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    #searchBar input { background: #0f172a; border: 1px solid #334155; color: white; padding: 8px 12px; border-radius: 8px; outline: none; }
+
+    /* VIEW AREA & SCROLLER */
+    .view-area { flex-grow: 1; padding: 25px; min-height: 0; box-sizing: border-box; }
+
+    .content-window { 
+        width: 100%; height: 100%; 
+        border: var(--thick-border); 
+        border-radius: 30px; 
+        padding: 30px; 
+        box-sizing: border-box; 
+        font-family: 'JetBrains Mono', monospace; 
+        white-space: pre; /* Keeps JSON formatting */
+        word-break: normal; 
+        overflow: auto; /* ENABLE SCROLLER */
+        background: #000;
+        position: relative;
+    }
+
+    /* CUSTOM SCROLLBAR STYLING */
+    .content-window::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+    .content-window::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 0 20px 20px 0;
+    }
+    .content-window::-webkit-scrollbar-thumb {
+        background: #334155;
+        border: 3px solid #000; /* Creates a floating effect */
+        border-radius: 10px;
+    }
+    .content-window::-webkit-scrollbar-thumb:hover {
+        background: var(--primary);
+    }
+
+    .highlight { background: #facc15; color: black; border-radius: 2px; font-weight: bold; }
+
+    .toast {
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background: var(--accent); color: white; padding: 10px 25px; border-radius: 50px;
+        font-weight: 700; opacity: 0; transition: 0.3s; z-index: 1000;
+    }
+    .toast.show { opacity: 1; top: 30px; }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast">Action Success</div>
+
+<div class="toolbar">
+    <span style="font-weight: 800; color: var(--primary); letter-spacing: 1px; font-size: 14px;">AURUS | MONITOR WORKSPACE</span>
+    <div class="btn-group">
+        <button class="tool-btn btn-find" onclick="toggleSearch()">🔍 Find</button>
+        <button class="tool-btn btn-copy" onclick="copyAll()">📋 Copy All</button>
+        <button class="tool-btn btn-close" onclick="window.close()">❌ Close</button>
+    </div>
+</div>
+
+<div id="searchBar">
+    <input type="text" id="searchInput" placeholder="Search keywords..." onkeyup="runSearch()">
+    <button class="tool-btn btn-close" style="padding: 5px 12px" onclick="toggleSearch()">Done</button>
+</div>
+
+<div class="view-area">
+    <div class="content-window" id="mainOutput"></div>
+</div>
+
+<script>
+    const original = localStorage.getItem('decryptResult') || "No data available in workspace.";
+    document.getElementById('mainOutput').innerText = original;
+
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3000);
+    }
+
+    function toggleSearch() {
+        const s = document.getElementById("searchBar");
+        s.style.display = (s.style.display === 'flex') ? 'none' : 'flex';
+        if(s.style.display === 'flex') document.getElementById("searchInput").focus();
+    }
+
+    function runSearch() {
+        const query = document.getElementById("searchInput").value.toLowerCase();
+        const display = document.getElementById("mainOutput");
+        if(!query) { display.innerText = original; return; }
+        
+        // Escape regex special chars
+        const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(${safeQuery})`, 'gi');
+        display.innerHTML = original.replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    function copyAll() {
+        navigator.clipboard.writeText(original);
+        showToast("📋 All Data Copied");
+    }
+</script>
+</body>
+</html>
