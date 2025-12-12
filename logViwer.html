@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Aurus | Live Edit Terminal</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-page: #f1f5f9;
+            --bg-terminal: #ffffff;
+            --bg-lines: #f8fafc;
+            --primary: #3b82f6;
+            --border-ui: #e2e8f0;
+        }
+
+        html, body { height: 100%; margin: 0; padding: 0; background: var(--bg-page); color: #1e293b; font-family: 'Inter', sans-serif; overflow: hidden; }
+
+        /* --- CONTEXT MENU --- */
+        #contextMenu {
+            display: none; position: absolute; background: #fff; border: 1px solid var(--border-ui);
+            border-radius: 12px; z-index: 3000; box-shadow: 0 10px 30px rgba(0,0,0,0.1); min-width: 180px; padding: 5px 0;
+        }
+        .menu-item { padding: 10px 15px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #475569; }
+        .menu-item:hover { background: #f1f5f9; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+
+        .wrapper { display: flex; flex-direction: column; height: 100vh; padding: 20px; box-sizing: border-box; }
+        .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+
+        /* --- TERMINAL CORE --- */
+        .terminal-card {
+            flex: 1; background: var(--bg-terminal); border: 2px solid var(--border-ui);
+            border-radius: 20px; display: flex; overflow: hidden; position: relative;
+        }
+
+        .line-numbers {
+            width: 65px; background: var(--bg-lines); color: #94a3b8;
+            font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right;
+            padding: 30px 12px; border-right: 1px solid var(--border-ui);
+            line-height: 1.6; overflow: hidden; flex-shrink: 0;
+        }
+        .line-num-item { cursor: pointer; position: relative; height: 20.8px; } /* Exact match for line-height */
+        .line-num-item.marked::before {
+            content: ''; position: absolute; left: -8px; top: 6px; width: 10px; height: 10px; 
+            background: #ef4444; border-radius: 50%; box-shadow: 0 0 5px #ef4444;
+        }
+
+        .log-viewport { position: relative; flex: 1; overflow: hidden; }
+
+        .log-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 30px; box-sizing: border-box; font-family: 'JetBrains Mono', monospace;
+            font-size: 13px; line-height: 1.6; white-space: pre; 
+            overflow: auto; outline: none; word-wrap: normal;
+        }
+
+        /* Front Layer: Editable */
+        #logEditor { z-index: 2; color: #334155; background: transparent; caret-color: var(--primary); }
+        
+        /* Back Layer: Highlights */
+        #logBackdrop { z-index: 1; color: transparent; pointer-events: none; }
+
+        /* HIGHLIGHT COLORS & SMART CONTRAST */
+        .hl-yellow { background: #fef08a; color: #854d0e !important; border-radius: 2px; }
+        .hl-lightred { background: #fecaca; color: #991b1b !important; border-radius: 2px; }
+        .hl-blue { background: #3b82f6; color: #ffffff !important; border-radius: 2px; }
+        .hl-green { background: #bbf7d0; color: #166534 !important; border-radius: 2px; }
+        .hl-pink { background: #fbcfe8; color: #9d174d !important; border-radius: 2px; }
+        .hl-vividred { background: #ef4444; color: #ffffff !important; border-radius: 2px; }
+        
+        .selection-match { border-bottom: 2px solid var(--primary); background: rgba(59, 130, 246, 0.1); }
+
+        .btn { padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--border-ui); background: white; transition: 0.2s; }
+        .btn:hover { background: #f8fafc; }
+    </style>
+</head>
+<body onkeydown="handleGlobalKeys(event)" onclick="hideMenu()">
+
+    <div id="contextMenu">
+        <div class="menu-item" onclick="addHighlight('hl-yellow')"><div class="dot" style="background:#fef08a"></div> Yellow</div>
+        <div class="menu-item" onclick="addHighlight('hl-lightred')"><div class="dot" style="background:#fecaca"></div> Light Red</div>
+        <div class="menu-item" onclick="addHighlight('hl-blue')"><div class="dot" style="background:#3b82f6"></div> Blue</div>
+        <div class="menu-item" onclick="addHighlight('hl-green')"><div class="dot" style="background:#bbf7d0"></div> Green</div>
+        <div class="menu-item" onclick="addHighlight('hl-pink')"><div class="dot" style="background:#fbcfe8"></div> Pink</div>
+        <div class="menu-item" onclick="addHighlight('hl-vividred')"><div class="dot" style="background:#ef4444"></div> Vivid Red</div>
+        <hr style="border:0; border-top:1px solid #eee;">
+        <div class="menu-item" style="color:red" onclick="clearHighlights()">✕ Clear All</div>
+    </div>
+
+    <div class="wrapper">
+        <div class="header-section">
+            <div>
+                <h2 style="margin:0;">Aurus <span style="color:var(--primary)">Live Terminal</span></h2>
+                <div style="font-size:11px; color:#64748b;">Status: <span style="color:var(--primary)">Always Editable</span></div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn" onclick="downloadLog()">📥 Export Log (Ctrl+S)</button>
+            </div>
+        </div>
+
+        <div class="terminal-card">
+            <div id="lineNumbers" class="line-numbers"></div>
+            <div class="log-viewport">
+                <div id="logBackdrop" class="log-layer"></div>
+                <div id="logEditor" class="log-layer" contenteditable="true" spellcheck="false" 
+                     oninput="updateLogic()" onscroll="syncAllScrolls()" 
+                     oncontextmenu="showMenu(event)" onmouseup="handleSelection()">
+[READY] Terminal is always editable.
+[STEP] Start typing anywhere. 
+[STEP] Select text and right-click to highlight.
+[INFO] Highlights follow your text as you type.
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let highlights = [];
+    let tempSelection = "";
+
+    window.onload = () => { updateLogic(); };
+
+    function handleGlobalKeys(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') { 
+            e.preventDefault(); 
+            downloadLog(); 
+        }
+    }
+
+    function syncAllScrolls() {
+        const editor = document.getElementById('logEditor');
+        const backdrop = document.getElementById('logBackdrop');
+        const lines = document.getElementById('lineNumbers');
+
+        backdrop.scrollTop = editor.scrollTop;
+        backdrop.scrollLeft = editor.scrollLeft;
+        lines.scrollTop = editor.scrollTop;
+    }
+
+    function updateLogic() {
+        syncLayers();
+        generateLineNumbers();
+    }
+
+    function generateLineNumbers() {
+        const editor = document.getElementById('logEditor');
+        const linesCount = editor.innerText.split('\n').length;
+        let html = "";
+        for (let i = 1; i <= linesCount; i++) {
+            html += `<div class="line-num-item" onclick="toggleMark(this)">${i}</div>`;
+        }
+        document.getElementById('lineNumbers').innerHTML = html;
+    }
+
+    function toggleMark(el) { el.classList.toggle('marked'); }
+
+    function syncLayers() {
+        const editor = document.getElementById('logEditor');
+        const backdrop = document.getElementById('logBackdrop');
+        let text = editor.innerText;
+        
+        // Escape HTML to prevent injection
+        let html = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        // Apply highlights based on stored array
+        // Sorted by length to prevent partial word highlight bugs
+        highlights.sort((a, b) => b.word.length - a.word.length).forEach(hl => {
+            const regex = new RegExp(`(${escapeRegExp(hl.word)})`, 'gi');
+            html = html.replace(regex, `<span class="${hl.colorClass}">$1</span>`);
+        });
+
+        // Show selection match preview
+        if (tempSelection) {
+            const selRegex = new RegExp(`(${escapeRegExp(tempSelection)})`, 'gi');
+            html = html.replace(selRegex, `<span class="selection-match">$1</span>`);
+        }
+
+        backdrop.innerHTML = html + "\n";
+        syncAllScrolls(); 
+    }
+
+    function handleSelection() {
+        const sel = window.getSelection().toString().trim();
+        tempSelection = (sel.length > 1) ? sel : "";
+        syncLayers();
+    }
+
+    function showMenu(e) {
+        if (tempSelection.length < 1) return;
+        e.preventDefault();
+        const menu = document.getElementById('contextMenu');
+        menu.style.display = 'block';
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+    }
+
+    function hideMenu() { document.getElementById('contextMenu').style.display = 'none'; }
+
+    function addHighlight(className) {
+        if (tempSelection) {
+            // Remove existing highlight for this word if any
+            highlights = highlights.filter(h => h.word.toLowerCase() !== tempSelection.toLowerCase());
+            highlights.push({ word: tempSelection, colorClass: className });
+            tempSelection = "";
+            updateLogic();
+        }
+        hideMenu();
+    }
+
+    function clearHighlights() { 
+        highlights = []; 
+        updateLogic(); 
+        hideMenu();
+    }
+
+    function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+    function downloadLog() {
+        const text = document.getElementById('logEditor').innerText;
+        const blob = new Blob([text], {type: 'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; 
+        a.download = 'Aurus_Live_Log.txt'; 
+        a.click();
+    }
+</script>
+</body>
+</html>
