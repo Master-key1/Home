@@ -17,132 +17,84 @@
     }
 
     body {
-        margin: 0;
-        font-family: 'Inter', sans-serif;
+        margin: 0; font-family: 'Inter', sans-serif;
         background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%);
-        color: white;
-        min-height: 100vh;
-        overflow-x: hidden;
+        color: white; min-height: 100vh; overflow-x: hidden;
     }
 
-    /* HEADER NAVIGATION AS BUTTON BAR */
+    /* --- POP AUTOMATION --- */
+    .pop-click { 
+        transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        cursor: pointer !important; 
+        user-select: none;
+        display: inline-block;
+    }
+    .pop-click:active { transform: scale(0.92) !important; }
+
+    /* NAVIGATION HEADER */
     .header-menu {
-        position: fixed;
-        top: 25px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 95%;
-        max-width: 1100px;
-        background: var(--nav-bg);
+        position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
+        width: 95%; max-width: 1100px; background: var(--nav-bg);
         backdrop-filter: blur(20px) saturate(180%);
         border: 1px solid rgba(0,0,0,0.1);
-        padding: 6px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-        border-radius: 100px;
-        z-index: 9999; /* Highest priority for clicks */
+        padding: 6px; display: flex; justify-content: center; align-items: center;
+        gap: 5px; border-radius: 100px; z-index: 10000; /* Extremely high z-index */
         box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
 
     .header-item {
-        padding: 12px 22px;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-weight: 700;
-        border-radius: 100px;
-        color: var(--nav-text);
-        text-decoration: none;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        
-        /* BEHAVIOR: BUTTON */
-        cursor: pointer !important;
-        display: inline-block;
-        user-select: none;
-        border: none;
-        outline: none;
+        padding: 12px 20px; font-size: 11px; text-transform: uppercase;
+        letter-spacing: 1px; font-weight: 700; border-radius: 100px;
+        color: var(--nav-text); text-decoration: none;
     }
-
-    .header-item:hover {
-        background: rgba(0,0,0,0.06);
-        color: #000;
-    }
-
-    /* BEHAVIOR: CLICK PRESS EFFECT */
-    .header-item:active {
-        transform: scale(0.95);
-        background: rgba(0,0,0,0.1);
-    }
+    .header-item:hover { background: rgba(0,0,0,0.05); color: #000; }
 
     .active-tab {
         background: var(--primary) !important;
         color: white !important;
         box-shadow: 0 4px 15px var(--primary-glow);
-        cursor: pointer !important;
     }
 
     /* HERO SECTION */
     #homeSection {
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        position: relative;
-        z-index: 1; /* Keep behind header */
+        height: 100vh; display: flex; flex-direction: column;
+        justify-content: center; align-items: center; position: relative;
     }
 
     .slider-container { width: 90%; max-width: 1100px; }
 
     .slider-box {
-        width: 100%;
-        aspect-ratio: 21 / 9;
-        border-radius: 40px; 
-        overflow: hidden;
-        background: #000;
+        width: 100%; aspect-ratio: 21 / 9; border-radius: 40px; 
+        overflow: hidden; background: #000;
         border: 10px solid var(--slider-border); 
-        position: relative;
-        box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        position: relative; box-shadow: 0 30px 60px rgba(0,0,0,0.5);
     }
 
     .slider-img {
-        width: 100%; height: 100%;
-        object-fit: cover;
-        position: absolute;
-        opacity: 0;
-        transform: scale(1.05);
-        transition: all 1s ease;
+        width: 100%; height: 100%; object-fit: cover;
+        position: absolute; opacity: 0; transform: scale(1.05);
+        transition: all 1s ease-in-out;
     }
-
     .slider-img.active { opacity: 1; transform: scale(1); }
 
     .dots { margin-top: 40px; display: flex; gap: 12px; }
 
     .dot {
-        width: 10px; height: 10px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 50%;
-        cursor: pointer !important;
-        transition: 0.3s;
+        width: 10px; height: 10px; background: rgba(255,255,255,0.2);
+        border-radius: 50%; transition: all 0.3s ease;
     }
-
-    .dot.active {
-        background: var(--primary);
-        width: 30px;
-        border-radius: 10px;
-    }
+    .dot.active { background: var(--primary); width: 30px; border-radius: 10px; }
 </style>
 </head>
+
 <body>
 
 <div class="header-menu">
-    <a th:href="@{/home}" class="header-item active-tab">Home</a>
-    <a th:href="@{/decryptor}" class="header-item">Decryptor</a>
-    <a th:href="@{/requestor}" class="header-item">Transaction Requestor</a>
-    <a th:href="@{/logger}" class="header-item">Transaction Logger</a>
-    <a th:href="@{/comparator}" class="header-item">Comparator</a>
+    <a th:href="@{/home}" class="header-item active-tab pop-click">Home</a>
+    <a th:href="@{/decryptor}" class="header-item pop-click">Decryptor</a>
+    <a th:href="@{/requestor}" class="header-item pop-click">Requestor</a>
+    <a th:href="@{/logger}" class="header-item pop-click">Logger</a>
+    <a th:href="@{/comparator}" class="header-item pop-click">Comparator</a>
 </div>
 
 <div id="homeSection">
@@ -156,10 +108,10 @@
     </div>
 
     <div class="dots">
-        <div class="dot active" onclick="manualSlide(0)"></div>
-        <div class="dot" onclick="manualSlide(1)"></div>
-        <div class="dot" onclick="manualSlide(2)"></div>
-        <div class="dot" onclick="manualSlide(3)"></div>
+        <div class="dot active pop-click" onclick="manualSlide(0)"></div>
+        <div class="dot pop-click" onclick="manualSlide(1)"></div>
+        <div class="dot pop-click" onclick="manualSlide(2)"></div>
+        <div class="dot pop-click" onclick="manualSlide(3)"></div>
     </div>
 </div>
 
@@ -191,5 +143,6 @@
     }
     autoPlay();
 </script>
+
 </body>
 </html>
